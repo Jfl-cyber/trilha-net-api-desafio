@@ -1,18 +1,92 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using Swashbuckle.AspNetCore.Annotations;
 
-  <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <Nullable>disable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
+namespace GerenciadorTarefas.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class TarefaController : ControllerBase
+    {
+        private readonly List<Tarefa> _tarefas = new List<Tarefa>();
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.5">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.5" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
-  </ItemGroup>
+        [HttpGet]
+        [SwaggerOperation(Summary = "Obter todas as tarefas")]
+        public IEnumerable<Tarefa> ObterTodasTarefas()
+        {
+            return _tarefas;
+        }
 
-</Project>
+        [HttpGet("{id}")]
+        [SwaggerOperation(Summary = "Obter uma tarefa pelo ID")]
+        public ActionResult<Tarefa> ObterTarefaPorId(int id)
+        {
+            var tarefa = _tarefas.FirstOrDefault(t => t.Id == id);
+            if (tarefa == null)
+            {
+                return NotFound();
+            }
+            return tarefa;
+        }
+
+        [HttpPost]
+        [SwaggerOperation(Summary = "Criar uma nova tarefa")]
+        public ActionResult<Tarefa> CriarTarefa(Tarefa tarefa)
+        {
+            _tarefas.Add(tarefa);
+            return CreatedAtAction(nameof(ObterTarefaPorId), new { id = tarefa.Id }, tarefa);
+        }
+
+        [HttpPut("{id}")]
+        [SwaggerOperation(Summary = "Atualizar uma tarefa pelo ID")]
+        public IActionResult AtualizarTarefa(int id, Tarefa tarefa)
+        {
+            if (id != tarefa.Id)
+            {
+                return BadRequest();
+            }
+            var tarefaExistente = _tarefas.FirstOrDefault(t => t.Id == id);
+            if (tarefaExistente == null)
+            {
+                return NotFound();
+            }
+            tarefaExistente.Titulo = tarefa.Titulo;
+            tarefaExistente.Descricao = tarefa.Descricao;
+            tarefaExistente.Data = tarefa.Data;
+            tarefaExistente.Status = tarefa.Status;
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        [SwaggerOperation(Summary = "Deletar uma tarefa pelo ID")]
+        public IActionResult DeletarTarefa(int id)
+        {
+            var tarefaExistente = _tarefas.FirstOrDefault(t => t.Id == id);
+            if (tarefaExistente == null)
+            {
+                return NotFound();
+            }
+            _tarefas.Remove(tarefaExistente);
+            return NoContent();
+        }
+    }
+
+    public class Tarefa
+    {
+        public int Id { get; set; }
+        public string Titulo { get; set; }
+        public string Descricao { get; set; }
+        public DateTime Data { get; set; }
+        public StatusTarefa Status { get; set; }
+    }
+
+    public enum StatusTarefa
+    {
+        Pendente,
+        EmProgresso,
+        Concluida
+    }
+}
